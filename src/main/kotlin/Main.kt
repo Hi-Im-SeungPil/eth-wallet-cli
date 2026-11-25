@@ -1,4 +1,3 @@
-import org.bouncycastle.crypto.ec.CustomNamedCurves
 import java.math.BigInteger
 
 fun main() {
@@ -16,12 +15,36 @@ fun main() {
 //    val realHex = BigInteger(hex.removePrefix("0x"), 16)
 //    val ten = BigInteger(realHex.toString(), 10)
 
+//    val env = loadEnv()
+//    val address = addressCalculator(env)
+//
+//    val balanceResponse = rpcCall(env.getValue("SEPOLIA_RPC_URL"), "eth_getBalance", """["$address","latest"]""")
+//    val balance = balanceResponse.substringAfter("\"result\":\"").substringBefore("\"").removePrefix("0x")
+//    val balanceAdoptWei = BigInteger(balance, 16).toBigDecimal().movePointLeft(18)
+//    println(address)
+//    println(balanceAdoptWei.stripTrailingZeros().toPlainString())
+
     val env = loadEnv()
     val address = addressCalculator(env)
+    val sepoliaUrl = env.getValue("SEPOLIA_RPC_URL")
+    val chainID = rpcCall(sepoliaUrl, "eth_chainId")
+    val nonce = rpcCall(sepoliaUrl, "eth_getTransactionCount", """["$address","pending"]""")
+    val tip = rpcCall(sepoliaUrl, "eth_maxPriorityFeePerGas")
+    val baseFeeRes = rpcCall(sepoliaUrl, "eth_getBlockByNumber", """["latest",false]""")
+    val baseFeeFeeResult = baseFeeRes.substringAfter("\"baseFeePerGas\":\"")
+        .substringBefore("\"")
+        .removePrefix("0x")
+    val baseFee = BigInteger(baseFeeFeeResult, 16)
 
-    val balanceResponse = rpcCall(env.getValue("SEPOLIA_RPC_URL"), "eth_getBalance", """["$address","latest"]""")
-    val balance = balanceResponse.substringAfter("\"result\":\"").substringBefore("\"").removePrefix("0x")
-    val balanceAdoptWei = BigInteger(balance, 16).toBigDecimal().movePointLeft(18)
-    println(address)
-    println(balanceAdoptWei.stripTrailingZeros().toPlainString())
+    println("chainId -> ${rpcNumber(chainID)}")
+    println("nonce -> ${rpcNumber(nonce)}")
+    println("tip -> ${rpcNumber(tip)}")
+    println("baseFee -> $baseFee")
+    println("maxFee -> ${baseFee.multiply(BigInteger.TWO).add(rpcNumber(tip))}")
+}
+
+fun rpcNumber(response: String): BigInteger {
+    // "result" 값 꺼내기 → 0x 떼고 16진수로 읽어 반환
+    val result = response.substringAfter("\"result\":\"").substringBefore("\"").removePrefix("0x")
+    return BigInteger(result, 16)
 }
