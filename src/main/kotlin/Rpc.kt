@@ -1,3 +1,4 @@
+import java.math.BigInteger
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -13,4 +14,13 @@ fun rpcCall(rpcUrl: String, method: String, params: String = "[]"): String {
 
     val response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString())
     return response.body()
+}
+
+/** 응답의 "result" 값(16진수)을 숫자로 */
+fun rpcNumber(response: String): BigInteger = rpcField(response, "result")
+
+/** 응답 JSON에서 이름이 field인 16진수 값을 숫자로. 예: baseFeePerGas, status, blockNumber */
+fun rpcField(response: String, field: String): BigInteger {
+    val hex = response.substringAfter("\"$field\":\"").substringBefore("\"").removePrefix("0x")
+    return BigInteger(hex, 16)
 }
